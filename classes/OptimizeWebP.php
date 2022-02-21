@@ -7,7 +7,7 @@ if (!class_exists('OptimizeWebP')) {
   {
     private $id;
     private $file;
-    private $meta;
+    public $meta;
     private $basedir;
     private $dir;
 
@@ -37,53 +37,57 @@ if (!class_exists('OptimizeWebP')) {
       if (isset($this->meta['sizes'])) {
         foreach ($this->meta['sizes'] as $key => $img) {
           $file = $this->dir . $img['file'];
-          $converted = $this->dirty_convert($file);
-          if()
-        }
-
-        // The original image
-        if (!empty($this->file) && file_exists($this->basedir . $this->file) && $this->contains($this->basedir . $this->file, ['.jpg', '.jpeg', '.png'])) {
-          $file = $this->basedir . $this->file;
-          $new_img = imagecreatefromjpeg($file);
-          $webp = imagewebp($new_img, str_replace(['.jpg', '.jpeg', '.png'], '.webp', $file), 80);
+          $webp = $this->dirty_convert($file, $img['mime-type']);
           if ($webp) {
-            imagedestroy($new_img);
             unlink($file);
+            $this->meta['sizes'][$key]['mime-type'] = 'image/webp';
+            $this->meta['sizes'][$key]['file'] = str_replace(['.jpg', '.jpeg'], '.webp', $img['file']);
           }
         }
-
-        $this->file = str_replace(['.jpg', '.jpeg', '.png'], '.webp', $this->file);
-        $this->meta['file'] = str_replace(['.jpg', '.jpeg', '.png'], '.webp', $this->meta['file']);
-
-        // update_post_meta($this->id, '_wp_attached_file', $this->file);
-        // update_post_meta($this->id, '_wp_attachment_metadata', $this->meta);
       }
+
+      // The original image
+      if (!empty($this->file) && file_exists($this->basedir . $this->file) && $this->contains($this->basedir . $this->file, ['.jpg', '.jpeg', '.png'])) {
+        $file = $this->basedir . $this->file;
+        $webp = $this->dirty_convert($file, mime_content_type($file));
+        if ($webp) {
+          unlink($file);
+        }
+      }
+
+      $this->file = str_replace(['.jpg', '.jpeg', '.png'], '.webp', $this->file);
+      $this->meta['file'] = str_replace(['.jpg', '.jpeg', '.png'], '.webp', $this->meta['file']);
+
+      update_post_meta($this->id, '_wp_attached_file', $this->file);
+      update_post_meta($this->id, '_wp_attachment_metadata', $this->meta);
     }
 
-    private function dirty_convert($file)
+    private function dirty_convert($file, $mime_type)
     {
       if (file_exists($file) && $this->contains($file, ['.jpg', '.jpeg', '.png'])) {
         $new_img = '';
-        switch ($img['mime-type']) {
+        switch ($mime_type) {
           case 'image/jpeg':
-            $new_img = imagecreatefromjpeg($file);
-            $webp = imagewebp($new_img, str_replace(['.jpg', '.jpeg'], '.webp', $file), 80);
+            $new_img = @imagecreatefromjpeg($file);
+            $webp = @imagewebp($new_img, str_replace(['.jpg', '.jpeg'], '.webp', $file), 80);
             break;
 
           case 'image/png':
-            $new_img = imagecreatefrompng($file);
-            imagepalettetotruecolor($new_img);
-            imageAlphaBlending($new_img, true);
-            imageSaveAlpha($new_img, true);
-            $webp = imagewebp($new_img, str_replace('.png', '.webp', $file), 80);
+            $new_img = @imagecreatefrompng($file);
+            @imagepalettetotruecolor($new_img);
+            @imageAlphaBlending($new_img, true);
+            @imageSaveAlpha($new_img, true);
+            $webp = @imagewebp($new_img, str_replace('.png', '.webp', $file), 80);
             break;
         }
 
         if (isset($webp) && $webp) {
           imagedestroy($new_img);
-          
+          return true;
         }
       }
+
+      return false;
     }
 
     private function contains($str, array $arr)
