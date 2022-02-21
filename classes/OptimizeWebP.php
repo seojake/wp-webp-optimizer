@@ -37,30 +37,8 @@ if (!class_exists('OptimizeWebP')) {
       if (isset($this->meta['sizes'])) {
         foreach ($this->meta['sizes'] as $key => $img) {
           $file = $this->dir . $img['file'];
-          if (file_exists($file) && $this->contains($file, ['.jpg', '.jpeg', '.png'])) {
-            $new_img = '';
-            switch ($img['mime-type']) {
-              case 'image/jpeg':
-                $new_img = imagecreatefromjpeg($file);
-                $webp = imagewebp($new_img, str_replace(['.jpg', '.jpeg'], '.webp', $file), 80);
-                break;
-
-              case 'image/png':
-                $new_img = imagecreatefrompng($file);
-                imagepalettetotruecolor($new_img);
-                imageAlphaBlending($new_img, true);
-                imageSaveAlpha($new_img, true);
-                $webp = imagewebp($new_img, str_replace('.png', '.webp', $file), 80);
-                break;
-            }
-
-            if (isset($webp) && $webp) {
-              imagedestroy($new_img);
-              unlink($file);
-              $this->meta['sizes'][$key]['mime-type'] = 'image/webp';
-              $this->meta['sizes'][$key]['file'] = str_replace(['.jpg', '.jpeg'], '.webp', $img['file']);
-            }
-          }
+          $converted = $this->dirty_convert($file);
+          if()
         }
 
         // The original image
@@ -77,8 +55,34 @@ if (!class_exists('OptimizeWebP')) {
         $this->file = str_replace(['.jpg', '.jpeg', '.png'], '.webp', $this->file);
         $this->meta['file'] = str_replace(['.jpg', '.jpeg', '.png'], '.webp', $this->meta['file']);
 
-        update_post_meta($this->id, '_wp_attached_file', $this->file);
-        update_post_meta($this->id, '_wp_attachment_metadata', $this->meta);
+        // update_post_meta($this->id, '_wp_attached_file', $this->file);
+        // update_post_meta($this->id, '_wp_attachment_metadata', $this->meta);
+      }
+    }
+
+    private function dirty_convert($file)
+    {
+      if (file_exists($file) && $this->contains($file, ['.jpg', '.jpeg', '.png'])) {
+        $new_img = '';
+        switch ($img['mime-type']) {
+          case 'image/jpeg':
+            $new_img = imagecreatefromjpeg($file);
+            $webp = imagewebp($new_img, str_replace(['.jpg', '.jpeg'], '.webp', $file), 80);
+            break;
+
+          case 'image/png':
+            $new_img = imagecreatefrompng($file);
+            imagepalettetotruecolor($new_img);
+            imageAlphaBlending($new_img, true);
+            imageSaveAlpha($new_img, true);
+            $webp = imagewebp($new_img, str_replace('.png', '.webp', $file), 80);
+            break;
+        }
+
+        if (isset($webp) && $webp) {
+          imagedestroy($new_img);
+          
+        }
       }
     }
 
