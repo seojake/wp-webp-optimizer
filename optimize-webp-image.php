@@ -6,11 +6,17 @@
  * Version: 1.0.0
  */
 
-require_once 'classes/OptimizeWebP.php';
+require_once 'OptimizeWebP.php';
 
-//https://stackoverflow.com/questions/57757439/how-to-convert-png-file-to-webp-file
+// Disable image scaling
+add_filter('big_image_size_threshold', '__return_false');
 
-$optimize_image = new OptimizeWebP(12);
-echo '<pre>';
-print_r($optimize_image->convert());
-echo '</pre>';
+// When a file is being uploaded, automatically optimize it
+add_action('add_attachment', 'owebp_optimize_uploaded_image', 10, 1);
+function owebp_optimize_uploaded_image($id)
+{
+  $optimizer = new OptimizeWebP($id);
+  $optimizer->optimize();
+}
+
+// Add a admin page to the tools page
